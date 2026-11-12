@@ -26,6 +26,24 @@ function createId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
+function getHighlightPosition(highlight: SavedHighlight) {
+  const firstPage = [...highlight.pages].sort((a, b) => a.pageNumber - b.pageNumber)[0]
+  const firstRect = firstPage?.rects.slice().sort((a, b) => a.y - b.y || a.x - b.x)[0]
+  return {
+    pageNumber: firstPage?.pageNumber ?? Number.POSITIVE_INFINITY,
+    y: firstRect?.y ?? Number.POSITIVE_INFINITY,
+    x: firstRect?.x ?? Number.POSITIVE_INFINITY,
+  }
+}
+
+function compareHighlightsByPdfPosition(a: SavedHighlight, b: SavedHighlight): number {
+  const positionA = getHighlightPosition(a)
+  const positionB = getHighlightPosition(b)
+  return positionA.pageNumber - positionB.pageNumber
+    || positionA.y - positionB.y
+    || positionA.x - positionB.x
+}
+
 function isStudyNoteTopicList(value: unknown): value is StudyNoteTopic[] {
   if (!Array.isArray(value)) return false
   return value.every((item) => {
@@ -63,7 +81,10 @@ function readStudyNotes(): StudyNoteTopic[] {
     if (!savedNotes) return []
     const parsedNotes: unknown = JSON.parse(savedNotes)
     if (!isStudyNoteTopicList(parsedNotes)) throw new Error('Saved study notes have an invalid format.')
-    return parsedNotes
+    return parsedNotes.map((topic) => ({
+      ...topic,
+      highlights: [...topic.highlights].sort(compareHighlightsByPdfPosition),
+    }))
   } catch (error) {
     console.error('Unable to read saved study notes.', error)
     return []
@@ -109,9 +130,17 @@ function App() {
       const topicIndex = current.findIndex((topic) => topic.courseName === courseName && topic.title === title)
       if (topicIndex === -1) return [...current, { courseName, title, highlights: [highlight], notes: [] }]
       return current.map((topic, index) => index === topicIndex
-        ? { ...topic, highlights: [...topic.highlights, highlight] }
+        ? { ...topic, highlights: [...topic.highlights, highlight].sort(compareHighlightsByPdfPosition) }
         : topic)
     })
+  }
+
+  const editPdfHighlight = (courseName: string, title: string, highlightId: string, text: string) => {
+    const updatedText = text.trim()
+    if (!updatedText) return
+    updateStudyNotes((current) => current.map((topic) => topic.courseName === courseName && topic.title === title
+      ? { ...topic, highlights: topic.highlights.map((highlight) => highlight.id === highlightId ? { ...highlight, text: updatedText } : highlight) }
+      : topic))
   }
 
   const deletePersonalNote = (courseName: string, title: string, noteId: string) => {
@@ -201,6 +230,8 @@ function App() {
           <Study
             notes={studyNotes}
             onAddPersonalNote={savePersonalNote}
+            onEditHighlight={editPdfHighlight}
+            onDeleteHighlight={deletePersonalNote}
             onOpenSavedNote={(courseName, title, pageNumber, y) => {
               setActiveCourseName(courseName)
               setCourseNoteTarget({ courseName, title, pageNumber, y })

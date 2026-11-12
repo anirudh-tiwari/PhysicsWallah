@@ -34,6 +34,24 @@ const courseTabs = [
 
 type CourseTab = (typeof courseTabs)[number]['id']
 
+function compareSavedHighlightsByPdfPosition(
+  a: { pages?: HighlightPage[] },
+  b: { pages?: HighlightPage[] },
+): number {
+  const position = (item: { pages?: HighlightPage[] }) => {
+    const firstPage = item.pages?.slice().sort((pageA, pageB) => pageA.pageNumber - pageB.pageNumber)[0]
+    const firstRect = firstPage?.rects.slice().sort((rectA, rectB) => rectA.y - rectB.y || rectA.x - rectB.x)[0]
+    return {
+      pageNumber: firstPage?.pageNumber ?? Number.POSITIVE_INFINITY,
+      y: firstRect?.y ?? Number.POSITIVE_INFINITY,
+      x: firstRect?.x ?? Number.POSITIVE_INFINITY,
+    }
+  }
+  const positionA = position(a)
+  const positionB = position(b)
+  return positionA.pageNumber - positionB.pageNumber || positionA.y - positionB.y || positionA.x - positionB.x
+}
+
 type Lesson = {
   title: string
   duration: string
@@ -260,6 +278,7 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
   const [selectedTab, setSelectedTab] = useState<CourseTab>('lectures')
   const [activeSummary, setActiveSummary] = useState<LessonSummary | null>(null)
   const [notesOpen, setNotesOpen] = useState(false)
+  const [courseContentScrolling, setCourseContentScrolling] = useState(false)
   const [notesTitle, setNotesTitle] = useState('')
   const [notesPageCount, setNotesPageCount] = useState(0)
   const [notesPageWidth, setNotesPageWidth] = useState(0)
@@ -276,6 +295,7 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
   const notesPendingZoomRef = useRef<number | null>(null)
   const notesZoomReadoutRef = useRef<HTMLSpanElement>(null)
   const notesZoomRef = useRef(notesZoom)
+  const courseContentScrollTimerRef = useRef<number | null>(null)
   const savedNotesRef = useRef(savedNotes)
   const handledNoteTargetRef = useRef('')
   notesZoomRef.current = notesZoom
@@ -292,8 +312,25 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
     ...topic.highlights.map((highlight) => ({ highlight, title: topic.title })),
     // Keep highlights saved by earlier versions visible during migration.
     ...topic.notes.filter((note) => note.pages?.length).map((highlight) => ({ highlight, title: topic.title })),
-  ]).sort((a, b) => Date.parse(b.highlight.createdAt) - Date.parse(a.highlight.createdAt))
+  ]).sort((a, b) => compareSavedHighlightsByPdfPosition(a.highlight, b.highlight))
   const selectedTabIndex = courseTabs.findIndex((tab) => tab.id === selectedTab)
+
+  useEffect(() => () => {
+    if (courseContentScrollTimerRef.current !== null) {
+      window.clearTimeout(courseContentScrollTimerRef.current)
+    }
+  }, [])
+
+  const handleCourseContentScroll = () => {
+    setCourseContentScrolling(true)
+    if (courseContentScrollTimerRef.current !== null) {
+      window.clearTimeout(courseContentScrollTimerRef.current)
+    }
+    courseContentScrollTimerRef.current = window.setTimeout(() => {
+      setCourseContentScrolling(false)
+      courseContentScrollTimerRef.current = null
+    }, 650)
+  }
 
   const previewNotesZoom = (zoom: number) => {
     const nextZoom = Math.min(2.5, Math.max(0.75, zoom))
@@ -622,7 +659,7 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
         </div>
       </div>
 
-      <main className="course-detail-content">
+      <main className={`course-detail-content${courseContentScrolling ? ' is-scrolling' : ''}`} onScroll={handleCourseContentScroll}>
         <section
           className="course-resource-panel"
           id="course-resource-panel"
@@ -788,28 +825,6 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
               </button>
             </div>
           </header>
-          <aside className="course-saved-highlights" aria-label="Saved notes and highlights">
-            <h3>Saved Notes / Highlights</h3>
-            {notesSaveError ? <p role="alert">{notesSaveError}11</p> : savedHighlights.length ? savedHighlights.map(({ highlight, title }) => (
-              <article className="course-saved-highlight" key={highlight.id}>
-                <button type="button" className="course-saved-highlight-link" onClick={() => {
-                  const firstPage = highlight.pages?.[0]
-                  const page = firstPage && notesViewerRef.current?.querySelector<HTMLElement>(`.react-pdf__Page[data-page-number="${firstPage.pageNumber}"]`)
-                  if (!page || !firstPage) return
-                  const viewer = notesViewerRef.current!
-                  const pageRect = page.getBoundingClientRect()
-                  const y = pageRect.top - viewer.getBoundingClientRect().top + viewer.scrollTop + pageRect.height * ((firstPage.rects[0]?.y ?? 50) / 100)
-                  viewer.scrollTo({ top: Math.max(0, y - 100), behavior: 'smooth' })
-                  page.classList.add('course-notes-page-emphasized')
-                  window.setTimeout(() => page.classList.remove('course-notes-page-emphasized'), 1400)
-                }}>
-                  <span>{highlight.text}</span>
-                  <small>{title} · Page {highlight.pages?.map((page) => page.pageNumber).join(', ')}</small>
-                </button>
-                {onDeleteNote && <button type="button" className="course-saved-highlight-delete" aria-label="Delete saved highlight" onClick={() => onDeleteNote(title, highlight.id)}><X size={16} /></button>}
-              </article>
-            )) : <p>No saved highlights yet. Select text in the PDF to save it here.</p>}
-          </aside>
           <div className="course-notes-pages" ref={notesViewerRef}>
             {selectionAction && (
               <div
