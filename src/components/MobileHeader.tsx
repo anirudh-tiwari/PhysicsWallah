@@ -9,6 +9,7 @@ const MobileHeader: React.FC = () => {
           src="https://imgak.mmtcdn.com/pwa_v3/pwa_hotel_assets/header/logo@2x.png" 
           alt="MakeMyTrip" 
           className="h-8"
+          decoding="async"
         />
       </div>
       

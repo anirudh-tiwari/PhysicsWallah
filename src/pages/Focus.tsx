@@ -13,6 +13,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { publicAssetUrl } from '../utils/publicAssetUrl'
 
 type RoomCategory = 'JEE' | 'NEET' | 'UPSC' | 'Foundation'
 type LibraryCategory = 'All' | RoomCategory
@@ -212,7 +213,7 @@ function Focus({ query, onJoinLibrary }: FocusProps) {
               <div className="hero-study-count"><span className="live-dot" /><strong>18,420</strong><span>students studying now</span></div>
             </div>
             <div className="library-illustration-section" aria-hidden="true">
-              <img src="/PW-Virtual-Library-illustration-2.png" alt="" />
+              <img src={publicAssetUrl('PW-Virtual-Library-illustration-2.webp')} alt="" decoding="async" />
             </div>
           </section>
 

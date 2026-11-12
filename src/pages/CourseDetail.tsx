@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Document, Page } from 'react-pdf'
 import type { HighlightPage, StudyNoteTopic } from '../types/StudyNotes'
+import { publicAssetUrl } from '../utils/publicAssetUrl'
 
 type CourseDetailProps = {
   courseName: string
@@ -825,41 +826,6 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
               </button>
             </div>
           </header>
-          <aside className="course-saved-highlights" aria-label="Saved notes and highlights">
-            <h3>Saved Notes / Highlights</h3>
-            {notesSaveError ? (
-              <p role="alert">{notesSaveError}</p>
-            ) : savedHighlights.length ? savedHighlights.map(({ highlight, title }) => (
-              <article className="course-saved-highlight" key={highlight.id}>
-                <button type="button" className="course-saved-highlight-link" onClick={() => {
-                  const firstPage = highlight.pages?.[0]
-                  const page = firstPage && notesViewerRef.current?.querySelector<HTMLElement>(`.react-pdf__Page[data-page-number="${firstPage.pageNumber}"]`)
-                  const viewer = notesViewerRef.current
-                  if (!page || !viewer || !firstPage) return
-                  const pageRect = page.getBoundingClientRect()
-                  const y = pageRect.top - viewer.getBoundingClientRect().top + viewer.scrollTop + pageRect.height * ((firstPage.rects[0]?.y ?? 50) / 100)
-                  viewer.scrollTo({ top: Math.max(0, y - 100), behavior: 'smooth' })
-                  page.classList.add('course-notes-page-emphasized')
-                  window.setTimeout(() => page.classList.remove('course-notes-page-emphasized'), 1400)
-                }}>
-                  <span>{highlight.text}</span>
-                  <small>{title} · Page {highlight.pages?.map((page) => page.pageNumber).join(', ')}</small>
-                </button>
-                {onDeleteNote && (
-                  <button
-                    type="button"
-                    className="course-saved-highlight-delete"
-                    aria-label="Delete saved highlight"
-                    onClick={() => onDeleteNote(title, highlight.id)}
-                  >
-                    <X size={16} aria-hidden="true" />
-                  </button>
-                )}
-              </article>
-            )) : (
-              <p>No saved highlights yet. Select text in the PDF to save it here.</p>
-            )}
-          </aside>
           <div className="course-notes-pages" ref={notesViewerRef}>
             {selectionAction && (
               <div
@@ -882,7 +848,7 @@ function CourseDetail({ courseName, onBack, savedNotes, noteTarget, onSaveNote, 
               </div>
             )}
             <Document
-              file="/Notes2.pdf"
+              file={publicAssetUrl('Notes2.pdf')}
               onLoadSuccess={({ numPages }) => {
                 setNotesPageCount(numPages)
                 setNotesError('')

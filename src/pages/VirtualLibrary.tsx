@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
+import { publicAssetUrl } from '../utils/publicAssetUrl'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
@@ -31,14 +32,14 @@ type VirtualLibraryProps = {
 type LibraryTab = 'todo' | 'materials'
 
 const studentPhotos = [
-  '/students/student-1.png',
-  '/students/student-2.png',
+  publicAssetUrl('students/student-1.webp'),
+  publicAssetUrl('students/student-2.webp'),
   null,
-  '/students/student-4.png',
-  '/students/student-5.png',
+  publicAssetUrl('students/student-4.webp'),
+  publicAssetUrl('students/student-5.webp'),
   null,
-  '/students/student-3.png',
-  '/students/student-6.png',
+  publicAssetUrl('students/student-3.webp'),
+  publicAssetUrl('students/student-6.webp'),
 ]
 const galleryPhotoPool = studentPhotos.filter((image): image is string => image !== null)
 const rotatingGalleryFrames = Array.from({ length: 8 }, (_, frameIndex) =>
@@ -98,7 +99,7 @@ function LectureNotesPdf() {
   return (
     <div className="vl-pdf-viewer" ref={viewerRef}>
       <Document
-        file="/Notes.pdf"
+        file={publicAssetUrl('Notes.pdf')}
         onLoadSuccess={({ numPages }) => {
           setPageCount(numPages)
           setError('')
@@ -253,7 +254,7 @@ function VirtualLibrary({ isActive, onBack }: VirtualLibraryProps) {
             {rotatingGalleryFrames[studentPhotoOffset].map((student) => (
               <article className="vl-student-tile" key={student.name}>
                 {student.image ? (
-                  <img src={student.image} alt={`${student.name} studying with their camera off`} />
+                  <img src={student.image} alt={`${student.name} studying with their camera off`} loading="lazy" decoding="async" />
                 ) : (
                   <div className="vl-student-placeholder" aria-label={`${student.name} camera off`}>
                     <span><Users size={42} aria-hidden="true" /></span>
@@ -404,7 +405,7 @@ function VirtualLibrary({ isActive, onBack }: VirtualLibraryProps) {
             <div className="vl-participant-list">
               {studyStudents.map((student) => (
                 <div key={student.name}>
-                  {student.image ? <img src={student.image} alt="" /> : <span className="vl-participant-initial">S</span>}
+                  {student.image ? <img src={student.image} alt="" loading="lazy" decoding="async" /> : <span className="vl-participant-initial">S</span>}
                   <span>{student.name}</span><small>Studying</small>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import CourseDetail from './pages/CourseDetail'
 import Study from './pages/Study'
 import VirtualLibrary from './pages/VirtualLibrary'
 import type { HighlightPage, SavedHighlight, StudyNoteTopic } from './types/StudyNotes'
+import { publicAssetUrl } from './utils/publicAssetUrl'
 
 type Screen = 'batches' | 'focus' | 'study' | 'virtual-library' | 'course-detail'
 type CourseReturnScreen = 'batches' | 'study'
@@ -287,7 +288,7 @@ function App() {
       </div>
       {splashVisible && (
         <div className="opening-splash" role="status" aria-label="Loading batches">
-          <img src="/PW-logo.jpg" alt="PW logo" />
+          <img src={publicAssetUrl('PW-logo.jpg')} alt="PW logo" fetchPriority="high" decoding="async" />
         </div>
       )}
     </>

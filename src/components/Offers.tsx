@@ -40,6 +40,8 @@ const Offers: React.FC = () => {
                 src={offer.image} 
                 alt={offer.title} 
                 className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://placehold.co/100x100?text=${offer.category}`;
                 }}
