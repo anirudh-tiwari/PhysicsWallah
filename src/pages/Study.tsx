@@ -10,7 +10,6 @@ import {
   CircleDollarSign,
   EllipsisVertical,
   Flame,
-  Gift,
   Menu,
   MonitorPlay,
   Pencil,
